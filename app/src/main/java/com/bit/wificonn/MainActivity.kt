@@ -64,6 +64,13 @@ enum class WifiState() {
     Disconnect
 }
 
+var stickX = 0
+var stickY = 0
+var slider = 0
+var button = 0
+var sendLoop = false
+
+var connections: ConnectionActivity? = null
 
 
 class MainActivity : ComponentActivity() {
@@ -98,7 +105,6 @@ fun RobotController(
     var state by remember { mutableIntStateOf(WifiState.Null.ordinal) }
     var ip_ by remember { mutableStateOf("") }
     var port_ by remember { mutableIntStateOf(25655) }
-    var connections: ConnectionActivity? by remember { mutableStateOf(null) }
     var preTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     var joystickX by remember { mutableFloatStateOf(0f) }
@@ -123,7 +129,7 @@ fun RobotController(
 
                 },
                 isDialogVisible = isDialogVisible,
-                isDialogVisibleAc = { a: Boolean -> isDialogVisible = a}
+                isDialogVisibleAc = { a: Boolean -> isDialogVisible = a }
             )
         }
         composable(route = AppScreen.Control.name) {
@@ -133,27 +139,38 @@ fun RobotController(
                 stopButtonAction = { state = WifiState.Stop.ordinal },
                 joystickMovedAction = { x: Float, y: Float ->
                     if (abs(x) > 0.05 && abs(y) > 0.05) {
-                        state = WifiState.JoystickMoved.ordinal
-                        joystickX = x
-                        joystickY = y
+
+                        stickX = (x * 100).roundToInt()
+                        stickY = (y * 100).roundToInt()
                     }
                 },
                 joystickStopAction = {
-                    state = WifiState.JoystickMoved.ordinal
-                    joystickX = 0f
-                    joystickY = 0f
+                    stickX = 0
+                    stickY = 0
                 },
                 disconnectButtonAction = { state = WifiState.Disconnect.ordinal },
                 joystickOffsetX = 50.dp,
                 joystickOffsetY = 100.dp,
-                onSliderChanged = { pos: Int -> sliderPos = pos
-                                  state = WifiState.JoystickMoved.ordinal},
+                onSliderChanged = { pos: Int ->
+                    slider = pos
+                },
                 modifier = Modifier
             )
         }
     }
     when (state) {
-        WifiState.Connect.ordinal -> connections = connectToEsp(ip_, port_, navController,{ isDialogVisible = true })
+        WifiState.Connect.ordinal -> {
+            Log.d("conn", "$connections")
+            connections = connectToEsp(ip_, port_, navController, { isDialogVisible = true })
+
+//            while(connections == null) {}
+            Log.d("conn2", "$connections")
+            sendLoop = true
+            Log.d("conn", "did")
+            SendLoop(connections)
+
+        }
+
         WifiState.Up.ordinal, WifiState.Down.ordinal, WifiState.JoystickMoved.ordinal, WifiState.Stop.ordinal -> {
             val nowTime = System.currentTimeMillis()
             Log.d("sock", "W")
@@ -171,7 +188,10 @@ fun RobotController(
 
         }
 
-        WifiState.Disconnect.ordinal -> Disconnect(connections, navController)
+        WifiState.Disconnect.ordinal -> {
+            sendLoop = false
+            Disconnect(connections, navController)
+        }
     }
     state = WifiState.Null.ordinal
 
@@ -182,7 +202,7 @@ fun Buttons(
     isWifiEnabled: Boolean,
     onConnect: (String, String) -> Unit,
     isDialogVisible: Boolean = false,
-    isDialogVisibleAc: (Boolean) -> Unit = {_ -> },
+    isDialogVisibleAc: (Boolean) -> Unit = { _ -> },
     modifier: Modifier = Modifier
 ) {
     var connectButtonText = "Connect"
@@ -192,7 +212,7 @@ fun Buttons(
         connectButtonText = "Wifi Disabled"
     }
     Box(
-        modifier= Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -260,11 +280,13 @@ fun Buttons(
     }
 }
 
-suspend fun connectionErrorDialogue(modifier: Modifier = Modifier,
-                                    visible: (Boolean) -> Unit) {
+suspend fun connectionErrorDialogue(
+    modifier: Modifier = Modifier,
+    visible: (Boolean) -> Unit
+) {
     visible(true)
     delay(2000L)
-    Log.d("error","del")
+    Log.d("error", "del")
     visible(false)
 
 }
@@ -279,37 +301,49 @@ fun connectToEsp(
 ): ConnectionActivity {
     val conn = ConnectionActivity(ipAddress, portNumber)
     LaunchedEffect(Unit) {
-        coroutineScope {
-            launch {
-                val result = kotlin.runCatching { conn.connect() }
-                when (val exception = result.exceptionOrNull()) {
-                    is java.net.ConnectException -> {
-                        Log.e("socket", "Connection Failed")
-                        connFailed()
-                    }
-
-                    is java.net.UnknownHostException -> {
-                        Log.e("socket", "Connection Failed")
-                        connFailed()
-                    }
 
 
-                    else -> {
+            val result = kotlin.runCatching { conn.connect() }
+            when (val exception = result.exceptionOrNull()) {
+                is java.net.ConnectException -> {
+                    Log.e("socket", "Connection Failed")
+                    connFailed()
+                }
+
+                is java.net.UnknownHostException -> {
+                    Log.e("socket", "Connection Failed")
+                    connFailed()
+                }
+
+
+                else -> {
+                    nav.navigate(AppScreen.Control.name)
+                    Log.d("socket", "Succeeded")
+                    /*if (result.isSuccess) {
                         nav.navigate(AppScreen.Control.name)
                         Log.d("socket", "Succeeded")
-                        /*if (result.isSuccess) {
-                            nav.navigate(AppScreen.Control.name)
-                            Log.d("socket", "Succeeded")
 
-                        } else {
-                            Log.e("socket", "Unknown Error: $exception")
-                        }*/
-                    }
-                }
+                    } else {
+                        Log.e("socket", "Unknown Error: $exception")
+                    }*/
+
+
             }
         }
     }
     return conn
+}
+
+@Composable
+fun SendLoop(
+    conn: ConnectionActivity?
+) {
+    Log.d("main", "launch")
+    LaunchedEffect(Unit) {
+        coroutineScope {
+            conn?.sendLoop()
+        }
+    }
 }
 
 @Composable
@@ -337,7 +371,7 @@ fun SendToEsp(
         coroutineScope {
             try {
                 conn?.sendToEsp(msg)
-            } catch(e: java.net.SocketException) {
+            } catch (e: java.net.SocketException) {
                 Log.e("socket", "Send failed")
             }
         }

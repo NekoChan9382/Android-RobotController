@@ -28,6 +28,21 @@ class ConnectionActivity(
         Log.d("wifi", "sent")
     }
 
+    suspend fun sendLoop()  = withContext(Dispatchers.IO){
+        Log.d("send", "launch $sendLoop")
+        while(sendLoop) {
+            Log.d("Hi","doing: $dos")
+            val msg = "stick\n$stickX\n$stickY\nslider\n$slider"
+            if ((dos == null).not()) {
+                dos?.writeBytes(msg)
+                dos?.flush()
+            }
+            Log.d("wifi", "send: $msg")
+            delay(10L)
+        }
+
+    }
+
     suspend fun disconnect() = withContext(Dispatchers.IO) {
         dos?.close()
         socket?.close()
