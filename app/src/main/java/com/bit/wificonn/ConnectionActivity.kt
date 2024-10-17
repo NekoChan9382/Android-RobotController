@@ -16,6 +16,7 @@ class ConnectionActivity(
     private var socket: Socket? = null
     private var dos: DataOutputStream? = null
 
+
     suspend fun connect() = withContext(Dispatchers.IO) {
         socket = Socket(ip, port)
         dos = DataOutputStream(BufferedOutputStream(socket?.outputStream))
@@ -30,15 +31,21 @@ class ConnectionActivity(
 
     suspend fun sendLoop()  = withContext(Dispatchers.IO){
         Log.d("send", "launch $sendLoop")
+        var preTime = System.currentTimeMillis()
         while(sendLoop) {
-            Log.d("Hi","doing: $dos")
-            val msg = "stick\n$stickX\n$stickY\nslider\n$slider"
-            if ((dos == null).not()) {
-                dos?.writeBytes(msg)
-                dos?.flush()
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - preTime > 20) {
+                preTime = currentTime
+                val msg = "stick\n$stickX\n$stickY\nslider\n$slider"
+                if ((dos == null).not()) {
+                    dos?.writeBytes(msg)
+                    dos?.flush()
+                }
+                Log.d("wifi", "send: $msg")
+                Log.d("data", "$stickY$stickX $sendLoop")
+//            delay(1000L)
+                Log.d("data", "$sendLoop")
             }
-            Log.d("wifi", "send: $msg")
-            delay(10L)
         }
 
     }

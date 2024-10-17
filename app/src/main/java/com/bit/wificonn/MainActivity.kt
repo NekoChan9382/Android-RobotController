@@ -46,6 +46,7 @@ import androidx.navigation.compose.rememberNavController
 import com.bit.wificonn.ConnectionActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -291,7 +292,7 @@ suspend fun connectionErrorDialogue(
 
 }
 
-@Composable
+
 fun connectToEsp(
     ipAddress: String,
     portNumber: Int,
@@ -300,7 +301,7 @@ fun connectToEsp(
     modifier: Modifier = Modifier
 ): ConnectionActivity {
     val conn = ConnectionActivity(ipAddress, portNumber)
-    LaunchedEffect(Unit) {
+    runBlocking {
 
 
             val result = kotlin.runCatching { conn.connect() }
