@@ -69,6 +69,7 @@ var stickX = 0
 var stickY = 0
 var slider = 0
 var button = 0
+var thetas = 0
 var sendLoop = false
 
 var connections: ConnectionActivity? = null
@@ -138,16 +139,20 @@ fun RobotController(
                 upButtonAction = { state = WifiState.Up.ordinal },
                 downButtonAction = { state = WifiState.Down.ordinal },
                 stopButtonAction = { state = WifiState.Stop.ordinal },
-                joystickMovedAction = { x: Float, y: Float ->
+                joystickMovedAction = { x: Float, y: Float, theta: Float ->
                     if (abs(x) > 0.05 && abs(y) > 0.05) {
 
-                        stickX = (x * 100).roundToInt()
-                        stickY = (y * 100).roundToInt()
+                        stickX = (x * 3).roundToInt()
+                        stickY = (y * 3).roundToInt()
+                        thetas = theta.roundToInt()
+                        Log.d("stick", "$thetas")
+
                     }
                 },
                 joystickStopAction = {
                     stickX = 0
                     stickY = 0
+                    thetas = 5
                 },
                 disconnectButtonAction = { state = WifiState.Disconnect.ordinal },
                 joystickOffsetX = 50.dp,

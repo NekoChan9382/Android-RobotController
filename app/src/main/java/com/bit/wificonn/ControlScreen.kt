@@ -46,7 +46,7 @@ fun MotorControlUI(
     upButtonAction: () ->Unit,
     downButtonAction: () -> Unit,
     stopButtonAction: () ->Unit,
-    joystickMovedAction: (x: Float, y: Float) -> Unit = { _, _ -> },
+    joystickMovedAction: (x: Float, y: Float, theta: Float) -> Unit = { _, _, _ -> },
     joystickStopAction: () -> Unit,
     disconnectButtonAction: () -> Unit,
     joystickOffsetX: Dp = 0.dp,
@@ -136,7 +136,7 @@ fun MotorControlUI(
    fun Joystick(
         size: Dp = 200.dp,
         dotSize: Dp = 50.dp,
-        movedAction: (x: Float, y: Float) -> Unit = { _, _ -> },
+        movedAction: (x: Float, y: Float, theta: Float) -> Unit = { _, _, _ -> },
         stopAction: () -> Unit = {},
         stickOffsetX: Dp = 0.dp,
         stickOffsetY: Dp = 0.dp,
@@ -221,7 +221,8 @@ fun MotorControlUI(
                     .onGloballyPositioned { coordinates ->
                         movedAction(
                             (coordinates.positionInParent().x - centerX) / radius,
-                            -(coordinates.positionInParent().y - centerY) / radius
+                            -(coordinates.positionInParent().y - centerY) / radius,
+                            theta
                         )
                     }
             )
