@@ -140,19 +140,23 @@ fun RobotController(
                 downButtonAction = { state = WifiState.Down.ordinal },
                 stopButtonAction = { state = WifiState.Stop.ordinal },
                 joystickMovedAction = { x: Float, y: Float, theta: Float ->
-                    if (abs(x) > 0.05 && abs(y) > 0.05) {
+                    if (abs(x) > 0.2 || abs(y) > 0.2) {
+                        Log.d("stick", "move")
 
                         stickX = (x * 3).roundToInt()
                         stickY = (y * 3).roundToInt()
-                        thetas = theta.roundToInt()
+                        thetas = if ( theta >= 0) {
+                            ( ( theta * 0.022 ).roundToInt() - 7) * -1
+                        } else {
+                            ( theta * 0.022 ).roundToInt() * -1
+                        } + 1
                         Log.d("stick", "$thetas")
-
                     }
                 },
                 joystickStopAction = {
                     stickX = 0
                     stickY = 0
-                    thetas = 5
+                    thetas = 0
                 },
                 disconnectButtonAction = { state = WifiState.Disconnect.ordinal },
                 joystickOffsetX = 50.dp,

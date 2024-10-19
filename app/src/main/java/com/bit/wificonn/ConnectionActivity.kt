@@ -2,11 +2,11 @@ package com.bit.wificonn
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.DataOutputStream
 import java.net.Socket
+import java.net.SocketException
 
 
 class ConnectionActivity(
@@ -53,24 +53,33 @@ class ConnectionActivity(
                 preSlider = slider
                 sliderChanged = true
             }
-            if (currentTime - preTimeStick > 10 && stickChanged) {
+            if (currentTime - preTimeStick > 5 && stickChanged) {
                 preTimeStick = currentTime
                 stickChanged = false
                 val msg = "stick\n$thetas\n"
-                Log.d("wifi", "send: $msg")
+//                Log.d("wifi", "send: $msg")
                 if ((dos == null).not()) {
-                    dos?.writeBytes(msg)
-                    dos?.flush()
+                    try {
+                        dos?.writeBytes(msg)
+                        dos?.flush()
+                    } catch (e: SocketException) {
+                        Log.e("wifi", "Send Failed")
+                    }
                 }
             }
             if (currentTime - preTimeSlider > 500 && sliderChanged) {
                 preTimeSlider = currentTime
                 sliderChanged = false
                 val msg = "slider\n$slider\n"
-                Log.d("wifi", "send: $msg")
+//                Log.d("wifi", "send: $msg")
+
                 if ((dos == null).not()) {
-                    dos?.writeBytes(msg)
-                    dos?.flush()
+                    try {
+                        dos?.writeBytes(msg)
+                        dos?.flush()
+                    } catch(e: SocketException) {
+                        Log.e("wifi", "Send Failed")
+                    }
                 }
             }
         }
@@ -78,8 +87,14 @@ class ConnectionActivity(
     }
 
     suspend fun disconnect() = withContext(Dispatchers.IO) {
-        dos?.close()
-        socket?.close()
+        try {
+            dos?.close()
+            socket?.close()
+        } catch(e: SocketException) {
+            Log.e("wifi", "Disconnect Failed")
+            dos = null
+            socket = null
+        }
     }
 }
 

@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
 import kotlin.math.atan
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -155,6 +157,8 @@ fun MotorControlUI(
         var posX by remember { mutableFloatStateOf(0f) }
         var posY by remember { mutableFloatStateOf(0f) }
 
+        var thetaDeg = 0f
+
         Box(
             modifier = Modifier
                 .size(size)
@@ -201,6 +205,10 @@ fun MotorControlUI(
                                 atan(y / x)
                             }
 
+                            thetaDeg = atan2(y, x) * ( 180 / PI.toFloat() ) - 45f
+
+                            Log.d("stick", "$x , $y , $thetaDeg")
+
                             currentRadius = sqrt((x.pow(2)) + (y.pow(2)))
 
                             offsetX += dragAmount.x
@@ -222,7 +230,7 @@ fun MotorControlUI(
                         movedAction(
                             (coordinates.positionInParent().x - centerX) / radius,
                             -(coordinates.positionInParent().y - centerY) / radius,
-                            theta
+                            thetaDeg
                         )
                     }
             )
