@@ -22,30 +22,20 @@ class ConnectionActivity(
         dos = DataOutputStream(BufferedOutputStream(socket?.outputStream))
     }
 
-    suspend fun sendToEsp(msg: String) = withContext(Dispatchers.IO) {
-        Log.d("wifi", "recv")
-        dos?.writeBytes(msg)
-        dos?.flush()
-        Log.d("wifi", "sent")
-    }
-
     suspend fun sendLoop()  = withContext(Dispatchers.IO){
 
         var preTimeStick = System.currentTimeMillis()
         var preTimeSlider = preTimeStick
         var stickChanged = false
         var sliderChanged = false
-        var preStickX = 0
-        var preStickY = 0
         var preSlider = 0
         var preTheta = 0
 
         while(sendLoop) {
             val currentTime = System.currentTimeMillis()
 
-            if (/*preStickX != stickX || preStickY != stickY*/preTheta != thetas) {
-                preStickX = stickX
-                preStickY = stickY
+            if (preTheta != thetas) {
+
                 preTheta = thetas
                 stickChanged = true
             }
@@ -57,7 +47,7 @@ class ConnectionActivity(
                 preTimeStick = currentTime
                 stickChanged = false
                 val msg = "stick\n$thetas\n"
-//                Log.d("wifi", "send: $msg")
+
                 if ((dos == null).not()) {
                     try {
                         dos?.writeBytes(msg)
@@ -71,7 +61,6 @@ class ConnectionActivity(
                 preTimeSlider = currentTime
                 sliderChanged = false
                 val msg = "slider\n$slider\n"
-//                Log.d("wifi", "send: $msg")
 
                 if ((dos == null).not()) {
                     try {

@@ -1,12 +1,10 @@
 package com.bit.wificonn
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -53,8 +51,7 @@ fun MotorControlUI(
     disconnectButtonAction: () -> Unit,
     joystickOffsetX: Dp = 0.dp,
     joystickOffsetY: Dp = 0.dp,
-    onSliderChanged: (Int) -> Unit,
-    modifier: Modifier) {
+    onSliderChanged: (Int) -> Unit, ) {
     var sliderPos by remember { mutableFloatStateOf(0f) }
 
     Box(
@@ -128,7 +125,7 @@ fun MotorControlUI(
                 }
                 .width(200.dp)
                 .height(50.dp)
-                .offset(x = -50.dp, y = 500.dp)
+                .offset(x = -(50.dp), y = 500.dp)
 
         )
 
@@ -142,7 +139,6 @@ fun MotorControlUI(
         stopAction: () -> Unit = {},
         stickOffsetX: Dp = 0.dp,
         stickOffsetY: Dp = 0.dp,
-        modifier: Modifier = Modifier
     ) {
         val radius = with(LocalDensity.current) { (size / 2).toPx() }
 
@@ -206,8 +202,6 @@ fun MotorControlUI(
                             }
 
                             thetaDeg = atan2(y, x) * ( 180 / PI.toFloat() ) - 45f
-
-                            Log.d("stick", "$x , $y , $thetaDeg")
 
                             currentRadius = sqrt((x.pow(2)) + (y.pow(2)))
 
