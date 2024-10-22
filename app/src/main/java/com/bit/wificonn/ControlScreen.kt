@@ -1,5 +1,6 @@
 package com.bit.wificonn
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -201,8 +202,10 @@ fun MotorControlUI(
                                 atan(y / x)
                             }
 
-                            thetaDeg = atan2(y, x) * ( 180 / PI.toFloat() ) - 45f
-
+                            thetaDeg = theta * (180f / PI.toFloat())
+                            if (thetaDeg < 0) thetaDeg += 360f
+//                            Log.d("stick", "$thetaDeg")
+                            
                             currentRadius = sqrt((x.pow(2)) + (y.pow(2)))
 
                             offsetX += dragAmount.x

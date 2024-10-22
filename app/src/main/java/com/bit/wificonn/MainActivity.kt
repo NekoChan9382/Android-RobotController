@@ -126,11 +126,8 @@ fun RobotController(
                 joystickMovedAction = { x: Float, y: Float, theta: Float ->
                     if (abs(x) > 0.2 || abs(y) > 0.2) {
 
-                        thetas = if ( theta >= 0) {
-                            ( ( theta * 0.022 ).roundToInt() - 7) * -1
-                        } else {
-                            ( theta * 0.022 ).roundToInt() * -1
-                        } + 1
+                        thetas = (theta / 45).roundToInt() + 1
+//                        Log.d("stick", "$thetas")
                     }
                 },
                 joystickStopAction = {
