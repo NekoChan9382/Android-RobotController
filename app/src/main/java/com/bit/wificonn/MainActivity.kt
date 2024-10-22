@@ -63,7 +63,6 @@ enum class ClickedButton {
     Floor
 }
 
-var slider = 0
 var thetas = 0
 var sendLoop = false
 var extractArmPos = 0
@@ -126,13 +125,13 @@ fun RobotController(
         }
         composable(route = AppScreen.Control.name) {
             MotorControlUI(
-                extractArmButtonAction = {},
+                extractArmButtonAction = { armPos: Int ->
+                    extractArmPos = armPos
+                    isButtonClicked = true
+                },
                 joystickMovedAction = { x: Float, y: Float, theta: Float ->
                     if (abs(x) > 0.2 || abs(y) > 0.2) {
-                        Log.d("stick", "$theta")
-
                         thetas = (theta * 0.022).toInt() + 1
-                        Log.d("stick", "$thetas")
                     }
                 },
                 joystickStopAction = {

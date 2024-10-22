@@ -27,7 +27,6 @@ class ConnectionActivity(
         var preTimeStick = System.currentTimeMillis()
         var preTimeSlider = preTimeStick
         var stickChanged = false
-        var sliderChanged = false
         var preSlider = 0
         var preTheta = 0
 
@@ -38,10 +37,6 @@ class ConnectionActivity(
 
                 preTheta = thetas
                 stickChanged = true
-            }
-            if (preSlider != slider) {
-                preSlider = slider
-                sliderChanged = true
             }
             if (currentTime - preTimeStick > 5 && stickChanged) {
                 preTimeStick = currentTime
@@ -57,10 +52,10 @@ class ConnectionActivity(
                     }
                 }
             }
-            if (currentTime - preTimeSlider > 500 && sliderChanged) {
+            if (currentTime - preTimeSlider > 500 && isButtonClicked) {
                 preTimeSlider = currentTime
-                sliderChanged = false
-                val msg = "slider\n$slider\n"
+                isButtonClicked = false
+                val msg = "arm\n$extractArmPos\n"
 
                 if ((dos == null).not()) {
                     try {
