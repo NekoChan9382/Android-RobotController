@@ -1,6 +1,7 @@
 package com.bit.wificonn
 
 import android.util.Log
+import android.view.MotionEvent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -21,12 +22,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -46,6 +49,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MotorControlUI(
     extractArmButtonAction: (c: Int) -> Unit = {},
@@ -67,40 +71,84 @@ fun MotorControlUI(
                 text = "Disconnect"
             )
         }
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(200.dp)
-                .offset(x = 600.dp)
-                .padding(all = 10.dp)
+        Row(
+            modifier = Modifier.fillMaxHeight()
+                .offset(x = 500.dp)
         ) {
-            Button(
-                onClick = { extractArmButtonAction(ClickedButton.Top.ordinal) }
+            Column(
+                modifier = Modifier.fillMaxHeight()
+                    .width(100.dp)
             ) {
-                Text(
-                    text = "Top"
-                )
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                extractArmMove = extractArmOrientation.Up.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                extractArmMove = extractArmOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Up"
+                    )
+                }
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                extractArmMove = extractArmOrientation.Down.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                extractArmMove = extractArmOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Down"
+                    )
+                }
             }
-            Button(
-                onClick = { extractArmButtonAction(ClickedButton.Middle.ordinal) }
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(200.dp)
             ) {
-                Text(
-                    text = "Middle"
-                )
-            }
-            Button(
-                onClick = { extractArmButtonAction(ClickedButton.Bottom.ordinal) }
-            ) {
-                Text(
-                    text = "Bottom"
-                )
-            }
-            Button(
-                onClick = { extractArmButtonAction(ClickedButton.Floor.ordinal) }
-            ) {
-                Text(
-                    text = "Floor"
-                )
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Top.ordinal) }
+                ) {
+                    Text(
+                        text = "Top"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Middle.ordinal) }
+                ) {
+                    Text(
+                        text = "Middle"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Bottom.ordinal) }
+                ) {
+                    Text(
+                        text = "Bottom"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Floor.ordinal) }
+                ) {
+                    Text(
+                        text = "Floor"
+                    )
+                }
             }
         }
         Joystick(stickOffsetX = joystickOffsetX,
@@ -181,7 +229,7 @@ fun MotorControlUI(
                                 atan(y / x)
                             }
 
-                            thetaDeg = theta * (180f / PI.toFloat()) -22.5f
+                            thetaDeg = theta * (180f / PI.toFloat()) - 22.5f
                             if (thetaDeg < 0) thetaDeg += 360f
 
 

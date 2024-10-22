@@ -63,10 +63,17 @@ enum class ClickedButton {
     Floor
 }
 
+enum class extractArmOrientation {
+    Stop,
+    Up,
+    Down
+}
+
 var thetas = 0
 var sendLoop = false
 var extractArmPos = 0
 var isButtonClicked = false
+var extractArmMove = extractArmOrientation.Stop.ordinal
 
 var connections: ConnectionActivity? = null
 

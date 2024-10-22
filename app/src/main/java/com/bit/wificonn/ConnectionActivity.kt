@@ -25,10 +25,10 @@ class ConnectionActivity(
     suspend fun sendLoop()  = withContext(Dispatchers.IO){
 
         var preTimeStick = System.currentTimeMillis()
-        var preTimeSlider = preTimeStick
+        var preTimeExtractArm = preTimeStick
         var stickChanged = false
-        var preSlider = 0
         var preTheta = 0
+        var preExtractMove = extractArmOrientation.Stop.ordinal
 
         while(sendLoop) {
             val currentTime = System.currentTimeMillis()
@@ -52,10 +52,16 @@ class ConnectionActivity(
                     }
                 }
             }
-            if (currentTime - preTimeSlider > 500 && isButtonClicked) {
-                preTimeSlider = currentTime
-                isButtonClicked = false
-                val msg = "arm\n$extractArmPos\n"
+            if (currentTime - preTimeExtractArm > 500 && isButtonClicked || preExtractMove != extractArmMove) {
+                preTimeExtractArm = currentTime
+                var msg: String
+                if (isButtonClicked) {
+                    isButtonClicked = false
+                    msg = "arm\n$extractArmPos\n"
+                } else {
+                    preExtractMove = extractArmMove
+                    msg="armmove\n$extractArmMove\n"
+                }
 
                 if ((dos == null).not()) {
                     try {
