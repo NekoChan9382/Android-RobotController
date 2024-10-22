@@ -53,15 +53,21 @@ enum class AppScreen {
 enum class WifiState {
     Null,
     Connect,
-    Up,
-    Down,
-    Stop,
     Disconnect
+}
+
+enum class ClickedButton {
+    Top,
+    Middle,
+    Bottom,
+    Floor
 }
 
 var slider = 0
 var thetas = 0
 var sendLoop = false
+var extractArmPos = 0
+var isButtonClicked = false
 
 var connections: ConnectionActivity? = null
 
@@ -120,14 +126,13 @@ fun RobotController(
         }
         composable(route = AppScreen.Control.name) {
             MotorControlUI(
-                upButtonAction = { state = WifiState.Up.ordinal },
-                downButtonAction = { state = WifiState.Down.ordinal },
-                stopButtonAction = { state = WifiState.Stop.ordinal },
+                extractArmButtonAction = {},
                 joystickMovedAction = { x: Float, y: Float, theta: Float ->
                     if (abs(x) > 0.2 || abs(y) > 0.2) {
+                        Log.d("stick", "$theta")
 
-                        thetas = (theta / 45).roundToInt() + 1
-//                        Log.d("stick", "$thetas")
+                        thetas = (theta * 0.022).toInt() + 1
+                        Log.d("stick", "$thetas")
                     }
                 },
                 joystickStopAction = {
@@ -136,9 +141,6 @@ fun RobotController(
                 disconnectButtonAction = { state = WifiState.Disconnect.ordinal },
                 joystickOffsetX = 50.dp,
                 joystickOffsetY = 100.dp,
-                onSliderChanged = { pos: Int ->
-                    slider = pos
-                }
             )
         }
     }

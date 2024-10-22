@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -29,13 +31,14 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.bit.wificonn.ui.theme.WificonnTheme
 import kotlin.math.PI
 import kotlin.math.atan
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -44,92 +47,66 @@ import kotlin.math.sqrt
 
 @Composable
 fun MotorControlUI(
-    upButtonAction: () ->Unit,
-    downButtonAction: () -> Unit,
-    stopButtonAction: () ->Unit,
+    extractArmButtonAction: (c: Int) -> Unit = {},
     joystickMovedAction: (x: Float, y: Float, theta: Float) -> Unit = { _, _, _ -> },
-    joystickStopAction: () -> Unit,
-    disconnectButtonAction: () -> Unit,
+    joystickStopAction: () -> Unit = {},
+    disconnectButtonAction: () -> Unit = {},
     joystickOffsetX: Dp = 0.dp,
     joystickOffsetY: Dp = 0.dp,
-    onSliderChanged: (Int) -> Unit, ) {
-    var sliderPos by remember { mutableFloatStateOf(0f) }
-
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .offset(0.dp, 50.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize()
+        Button(
+            onClick = disconnectButtonAction,
+        ) {
+            Text(
+                text = "Disconnect"
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(250.dp)
+                .offset(x = 500.dp)
         ) {
             Button(
-                onClick = upButtonAction
+                onClick = { extractArmButtonAction(ClickedButton.Top.ordinal) }
             ) {
                 Text(
-                    text = "Up"
+                    text = "Top"
                 )
             }
             Button(
-                onClick = downButtonAction
+                onClick = { extractArmButtonAction(ClickedButton.Middle.ordinal) }
             ) {
                 Text(
-                    text = "Down"
+                    text = "Middle"
                 )
             }
             Button(
-                onClick = stopButtonAction
+                onClick = { extractArmButtonAction(ClickedButton.Bottom.ordinal) }
             ) {
                 Text(
-                    text = "Stop"
+                    text = "Bottom"
                 )
             }
             Button(
-                onClick = disconnectButtonAction
+                onClick = { extractArmButtonAction(ClickedButton.Floor.ordinal) }
             ) {
                 Text(
-                    text = "Disconnect"
+                    text = "Floor"
                 )
             }
-
         }
         Joystick(stickOffsetX = joystickOffsetX,
             stickOffsetY = joystickOffsetY,
-            size = 120.dp,
-            dotSize = 30.dp,
+            size = 150.dp,
+            dotSize = 50.dp,
             movedAction = joystickMovedAction,
             stopAction = joystickStopAction)
-
-        Slider(
-            value = sliderPos,
-            onValueChange = { sliderPos = it
-                onSliderChanged(sliderPos.toInt()) },
-            valueRange = 0f..100f,
-            steps = 99,
-            modifier = Modifier
-                .graphicsLayer {
-                    rotationZ = 270f
-                    transformOrigin = TransformOrigin(0f, 0f)
-                }
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(
-                        Constraints(
-                            minWidth = constraints.minHeight,
-                            maxWidth = constraints.maxHeight,
-                            minHeight = constraints.minWidth,
-                            maxHeight = constraints.maxHeight,
-                        )
-                    )
-                    layout(placeable.height, placeable.width) {
-                        placeable.place(-placeable.width, 0)
-                    }
-                }
-                .width(200.dp)
-                .height(50.dp)
-                .offset(x = -(50.dp), y = 500.dp)
-
-        )
-
     }
 }
     @Composable
@@ -202,10 +179,10 @@ fun MotorControlUI(
                                 atan(y / x)
                             }
 
-                            thetaDeg = theta * (180f / PI.toFloat())
+                            thetaDeg = theta * (180f / PI.toFloat()) -22.5f
                             if (thetaDeg < 0) thetaDeg += 360f
-//                            Log.d("stick", "$thetaDeg")
-                            
+
+
                             currentRadius = sqrt((x.pow(2)) + (y.pow(2)))
 
                             offsetX += dragAmount.x
@@ -237,3 +214,11 @@ fun MotorControlUI(
 
 private fun polarToCartesian(radius: Float, theta: Float): Pair<Float, Float> =
     Pair(radius * cos(theta), radius * sin(theta))
+
+@Preview
+@Composable
+fun PreviewControl() {
+    WificonnTheme {
+        MotorControlUI()
+    }
+}
