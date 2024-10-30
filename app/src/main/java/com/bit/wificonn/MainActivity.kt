@@ -63,17 +63,18 @@ enum class ClickedButton {
     Floor
 }
 
-enum class extractArmOrientation {
+enum class MotorOrientation {
     Stop,
-    Up,
-    Down
+    Plus,
+    Minus
 }
 
 var thetas = 0
 var sendLoop = false
 var extractArmPos = 0
 var isButtonClicked = false
-var extractArmMove = extractArmOrientation.Stop.ordinal
+var extractArmMove = MotorOrientation.Stop.ordinal
+var trashArmMove = MotorOrientation.Stop.ordinal
 
 var connections: ConnectionActivity? = null
 
@@ -107,7 +108,7 @@ fun RobotController(
     }
 
     var state by remember { mutableIntStateOf(WifiState.Null.ordinal) }
-    var ipAddress by remember { mutableStateOf("") }
+    var ipAddress by remember { mutableStateOf("10.133.4.181") }
     var portNum by remember { mutableIntStateOf(25655) }
 
     var isDialogVisible by remember { mutableStateOf(false) }
