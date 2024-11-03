@@ -1,39 +1,40 @@
 package com.bit.wificonn
 
 import android.util.Log
+import android.view.MotionEvent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.bit.wificonn.ui.theme.WificonnTheme
+import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.pow
@@ -41,106 +42,166 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MotorControlUI(
-    upButtonAction: () ->Unit,
-    downButtonAction: () -> Unit,
-    stopButtonAction: () ->Unit,
-    joystickMovedAction: (x: Float, y: Float) -> Unit = { _, _ -> },
-    joystickStopAction: () -> Unit,
-    disconnectButtonAction: () -> Unit,
+    extractArmButtonAction: (c: Int) -> Unit = {},
+    trashArmButtonAction: (c: Int) -> Unit = {},
+    joystickMovedAction: (x: Float, y: Float, theta: Float) -> Unit = { _, _, _ -> },
+    joystickStopAction: () -> Unit = {},
+    disconnectButtonAction: () -> Unit = {},
     joystickOffsetX: Dp = 0.dp,
     joystickOffsetY: Dp = 0.dp,
-    onSliderChanged: (Int) -> Unit,
-    modifier: Modifier) {
-    var sliderPos by remember { mutableFloatStateOf(0f) }
-
+    ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .offset(0.dp, 50.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize()
+        Button(
+            onClick = disconnectButtonAction,
         ) {
-            Button(
-                onClick = upButtonAction
+            Text(
+                text = "Disconnect"
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxHeight()
+                .offset(x = 500.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxHeight()
+                    .width(100.dp)
             ) {
-                Text(
-                    text = "Up"
-                )
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                trashArmMove = MotorOrientation.Plus.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                trashArmMove = MotorOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Left"
+                    )
+                }
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                trashArmMove = MotorOrientation.Minus.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                trashArmMove = MotorOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Right"
+                    )
+                }
             }
-            Button(
-                onClick = downButtonAction
+            Column(
+                modifier = Modifier.fillMaxHeight()
+                    .width(100.dp)
             ) {
-                Text(
-                    text = "Down"
-                )
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                extractArmMove = MotorOrientation.Plus.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                extractArmMove = MotorOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Up"
+                    )
+                }
+                Button(
+                    modifier = Modifier.pointerInteropFilter {
+                        when(it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                extractArmMove = MotorOrientation.Minus.ordinal
+                            }
+                            MotionEvent.ACTION_UP -> {
+                                extractArmMove = MotorOrientation.Stop.ordinal
+                            }
+                        }
+                        true
+                    },
+                    onClick = {}
+                ) {
+                    Text(
+                        text = "Down"
+                    )
+                }
             }
-            Button(
-                onClick = stopButtonAction
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(200.dp)
             ) {
-                Text(
-                    text = "Stop"
-                )
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Top.ordinal) }
+                ) {
+                    Text(
+                        text = "Top"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Middle.ordinal) }
+                ) {
+                    Text(
+                        text = "Middle"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Bottom.ordinal) }
+                ) {
+                    Text(
+                        text = "Bottom"
+                    )
+                }
+                Button(
+                    onClick = { extractArmButtonAction(ClickedButton.Floor.ordinal) }
+                ) {
+                    Text(
+                        text = "Floor"
+                    )
+                }
             }
-            Button(
-                onClick = disconnectButtonAction
-            ) {
-                Text(
-                    text = "Disconnect"
-                )
-            }
-
         }
         Joystick(stickOffsetX = joystickOffsetX,
             stickOffsetY = joystickOffsetY,
-            size = 120.dp,
-            dotSize = 30.dp,
+            size = 150.dp,
+            dotSize = 50.dp,
             movedAction = joystickMovedAction,
             stopAction = joystickStopAction)
-
-        Slider(
-            value = sliderPos,
-            onValueChange = { sliderPos = it
-                onSliderChanged(sliderPos.toInt()) },
-            valueRange = 0f..100f,
-            steps = 99,
-            modifier = Modifier
-                .graphicsLayer {
-                    rotationZ = 270f
-                    transformOrigin = TransformOrigin(0f, 0f)
-                }
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(
-                        Constraints(
-                            minWidth = constraints.minHeight,
-                            maxWidth = constraints.maxHeight,
-                            minHeight = constraints.minWidth,
-                            maxHeight = constraints.maxHeight,
-                        )
-                    )
-                    layout(placeable.height, placeable.width) {
-                        placeable.place(-placeable.width, 0)
-                    }
-                }
-                .width(200.dp)
-                .height(50.dp)
-                .offset(x = -50.dp, y = 500.dp)
-
-        )
-
     }
 }
     @Composable
    fun Joystick(
         size: Dp = 200.dp,
         dotSize: Dp = 50.dp,
-        movedAction: (x: Float, y: Float) -> Unit = { _, _ -> },
+        movedAction: (x: Float, y: Float, theta: Float) -> Unit = { _, _, _ -> },
         stopAction: () -> Unit = {},
         stickOffsetX: Dp = 0.dp,
         stickOffsetY: Dp = 0.dp,
-        modifier: Modifier = Modifier
     ) {
         val radius = with(LocalDensity.current) { (size / 2).toPx() }
 
@@ -154,6 +215,8 @@ fun MotorControlUI(
         var theta by remember { mutableFloatStateOf(0f) }
         var posX by remember { mutableFloatStateOf(0f) }
         var posY by remember { mutableFloatStateOf(0f) }
+
+        var thetaDeg = 0f
 
         Box(
             modifier = Modifier
@@ -201,6 +264,10 @@ fun MotorControlUI(
                                 atan(y / x)
                             }
 
+                            thetaDeg = theta * (180f / PI.toFloat()) - 22.5f
+                            if (thetaDeg < 0) thetaDeg += 360f
+
+
                             currentRadius = sqrt((x.pow(2)) + (y.pow(2)))
 
                             offsetX += dragAmount.x
@@ -221,7 +288,8 @@ fun MotorControlUI(
                     .onGloballyPositioned { coordinates ->
                         movedAction(
                             (coordinates.positionInParent().x - centerX) / radius,
-                            -(coordinates.positionInParent().y - centerY) / radius
+                            -(coordinates.positionInParent().y - centerY) / radius,
+                            thetaDeg
                         )
                     }
             )
@@ -231,3 +299,11 @@ fun MotorControlUI(
 
 private fun polarToCartesian(radius: Float, theta: Float): Pair<Float, Float> =
     Pair(radius * cos(theta), radius * sin(theta))
+
+@Preview
+@Composable
+fun PreviewControl() {
+    WificonnTheme {
+        MotorControlUI()
+    }
+}

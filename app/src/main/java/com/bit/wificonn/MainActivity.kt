@@ -4,7 +4,6 @@ import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.ComponentDialog
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -21,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.bit.wificonn.ui.theme.WificonnTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,8 +28,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -43,27 +39,44 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.bit.wificonn.ConnectionActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-enum class AppScreen() {
+enum class AppScreen {
     Connect,
     Control
 }
 
-enum class WifiState() {
+enum class WifiState {
     Null,
     Connect,
-    Up,
-    Down,
-    Stop,
-    JoystickMoved,
     Disconnect
 }
 
+enum class ClickedButton {
+    Top,
+    Middle,
+    Bottom,
+    Floor
+}
+
+enum class MotorOrientation {
+    Stop,
+    Plus,
+    Minus
+}
+
+var thetas = 0
+var sendLoop = false
+var extractArmPos = 0
+var isButtonClicked = false
+var extractArmMove = MotorOrientation.Stop.ordinal
+var trashArmMove = MotorOrientation.Stop.ordinal
+
+var connections: ConnectionActivity? = null
 
 
 class MainActivity : ComponentActivity() {
@@ -87,7 +100,6 @@ class MainActivity : ComponentActivity() {
 fun RobotController(
     wifiManager: WifiManager,
     navController: NavHostController = rememberNavController(),
-    modifier: Modifier = Modifier
 ) {
     var isWifiEnabled = true
 
@@ -96,15 +108,8 @@ fun RobotController(
     }
 
     var state by remember { mutableIntStateOf(WifiState.Null.ordinal) }
-    var ip_ by remember { mutableStateOf("") }
-    var port_ by remember { mutableIntStateOf(25655) }
-    var connections: ConnectionActivity? by remember { mutableStateOf(null) }
-    var preTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
-    var joystickX by remember { mutableFloatStateOf(0f) }
-    var joystickY by remember { mutableFloatStateOf(0f) }
-
-    var sliderPos by remember { mutableIntStateOf(0) }
+    var ipAddress by remember { mutableStateOf("10.133.4.181") }
+    var portNum by remember { mutableIntStateOf(25655) }
 
     var isDialogVisible by remember { mutableStateOf(false) }
 
@@ -118,60 +123,45 @@ fun RobotController(
                 isWifiEnabled = isWifiEnabled,
                 onConnect = { ip: String, port: String ->
                     state = WifiState.Connect.ordinal
-                    ip_ = ip
-                    port_ = port.toInt()
+                    ipAddress = ip
+                    portNum = port.toInt()
 
                 },
                 isDialogVisible = isDialogVisible,
-                isDialogVisibleAc = { a: Boolean -> isDialogVisible = a}
+                isDialogVisibleAction = { a: Boolean -> isDialogVisible = a }
             )
         }
         composable(route = AppScreen.Control.name) {
             MotorControlUI(
-                upButtonAction = { state = WifiState.Up.ordinal },
-                downButtonAction = { state = WifiState.Down.ordinal },
-                stopButtonAction = { state = WifiState.Stop.ordinal },
-                joystickMovedAction = { x: Float, y: Float ->
-                    if (abs(x) > 0.05 && abs(y) > 0.05) {
-                        state = WifiState.JoystickMoved.ordinal
-                        joystickX = x
-                        joystickY = y
+                extractArmButtonAction = { armPos: Int ->
+                    extractArmPos = armPos
+                    isButtonClicked = true
+                },
+                joystickMovedAction = { x: Float, y: Float, theta: Float ->
+                    if (abs(x) > 0.2 || abs(y) > 0.2) {
+                        thetas = (theta * 0.022).toInt() + 1
                     }
                 },
                 joystickStopAction = {
-                    state = WifiState.JoystickMoved.ordinal
-                    joystickX = 0f
-                    joystickY = 0f
+                    thetas = 0
                 },
                 disconnectButtonAction = { state = WifiState.Disconnect.ordinal },
                 joystickOffsetX = 50.dp,
                 joystickOffsetY = 100.dp,
-                onSliderChanged = { pos: Int -> sliderPos = pos
-                                  state = WifiState.JoystickMoved.ordinal},
-                modifier = Modifier
             )
         }
     }
     when (state) {
-        WifiState.Connect.ordinal -> connections = connectToEsp(ip_, port_, navController,{ isDialogVisible = true })
-        WifiState.Up.ordinal, WifiState.Down.ordinal, WifiState.JoystickMoved.ordinal, WifiState.Stop.ordinal -> {
-            val nowTime = System.currentTimeMillis()
-            Log.d("sock", "W")
-            if (nowTime - preTime > 50L) {
-                preTime = nowTime
-                SendToEsp(
-                    connections,
-                    state,
-                    joystickX,
-                    joystickY,
-                    sliderPos
-                )
+        WifiState.Connect.ordinal -> {
 
-            }
-
+            connections = connectToEsp(ipAddress, portNum, navController){ isDialogVisible = true }
+            sendLoop = true
+            SendLoop(connections)
         }
-
-        WifiState.Disconnect.ordinal -> Disconnect(connections, navController)
+        WifiState.Disconnect.ordinal -> {
+            sendLoop = false
+            Disconnect(connections, navController)
+        }
     }
     state = WifiState.Null.ordinal
 
@@ -182,8 +172,7 @@ fun Buttons(
     isWifiEnabled: Boolean,
     onConnect: (String, String) -> Unit,
     isDialogVisible: Boolean = false,
-    isDialogVisibleAc: (Boolean) -> Unit = {_ -> },
-    modifier: Modifier = Modifier
+    isDialogVisibleAction: (Boolean) -> Unit = { _ -> },
 ) {
     var connectButtonText = "Connect"
     val focus = LocalFocusManager.current
@@ -192,7 +181,7 @@ fun Buttons(
         connectButtonText = "Wifi Disabled"
     }
     Box(
-        modifier= Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Column(
             modifier = Modifier
@@ -253,59 +242,57 @@ fun Buttons(
             )
             LaunchedEffect(Unit) {
                 coroutineScope {
-                    connectionErrorDialogue(visible = isDialogVisibleAc)
+                    connectionErrorDialogue(visible = isDialogVisibleAction)
                 }
             }
         }
     }
 }
 
-suspend fun connectionErrorDialogue(modifier: Modifier = Modifier,
-                                    visible: (Boolean) -> Unit) {
+suspend fun connectionErrorDialogue(
+    visible: (Boolean) -> Unit
+) {
     visible(true)
     delay(2000L)
-    Log.d("error","del")
     visible(false)
 
 }
 
-@Composable
+
 fun connectToEsp(
     ipAddress: String,
     portNumber: Int,
     nav: NavHostController,
-    connFailed: () -> Unit,
-    modifier: Modifier = Modifier
+    connFailed: () -> Unit
 ): ConnectionActivity {
     val conn = ConnectionActivity(ipAddress, portNumber)
-    LaunchedEffect(Unit) {
-        coroutineScope {
-            launch {
-                val result = kotlin.runCatching { conn.connect() }
-                when (val exception = result.exceptionOrNull()) {
-                    is java.net.ConnectException -> {
-                        Log.e("socket", "Connection Failed")
-                        connFailed()
-                    }
-
-                    is java.net.UnknownHostException -> {
-                        Log.e("socket", "Connection Failed")
-                        connFailed()
-                    }
+    runBlocking {
 
 
-                    else -> {
+            val result = kotlin.runCatching { conn.connect() }
+            when (result.exceptionOrNull()) {
+                is java.net.ConnectException -> {
+                    Log.e("socket", "Connection Failed")
+                    connFailed()
+                }
+
+                is java.net.UnknownHostException -> {
+                    Log.e("socket", "Connection Failed")
+                    connFailed()
+                }
+
+
+                else -> {
+                    nav.navigate(AppScreen.Control.name)
+                    /*if (result.isSuccess) {
                         nav.navigate(AppScreen.Control.name)
                         Log.d("socket", "Succeeded")
-                        /*if (result.isSuccess) {
-                            nav.navigate(AppScreen.Control.name)
-                            Log.d("socket", "Succeeded")
 
-                        } else {
-                            Log.e("socket", "Unknown Error: $exception")
-                        }*/
-                    }
-                }
+                    } else {
+                        Log.e("socket", "Unknown Error: $exception")
+                    }*/
+
+
             }
         }
     }
@@ -313,39 +300,18 @@ fun connectToEsp(
 }
 
 @Composable
-fun SendToEsp(
-    conn: ConnectionActivity?,
-    sendNum: Int,
-    joystickX: Float = 0f,
-    joystickY: Float = 0f,
-    sliderPos: Int = 0,
-    modifier: Modifier = Modifier
+fun SendLoop(
+    conn: ConnectionActivity?
 ) {
-    var msg = ""
-    val sendX = (joystickX * 100).roundToInt()
-    val sendY = (joystickY * 100).roundToInt()
-    when (sendNum) {
-        WifiState.Up.ordinal -> msg = "up\n"
-        WifiState.Down.ordinal -> msg = "down\n"
-        WifiState.JoystickMoved.ordinal -> msg = "stick\n$sendX\n$sendY\nslider\n$sliderPos\n"
-        WifiState.Stop.ordinal -> msg = "stop\n"
-    }
-
-    Log.d("socket", "Send: $msg")
-
     LaunchedEffect(Unit) {
         coroutineScope {
-            try {
-                conn?.sendToEsp(msg)
-            } catch(e: java.net.SocketException) {
-                Log.e("socket", "Send failed")
-            }
+            conn?.sendLoop()
         }
     }
 }
 
 @Composable
-fun Disconnect(conn: ConnectionActivity?, nav: NavHostController, modifier: Modifier = Modifier) {
+fun Disconnect(conn: ConnectionActivity?, nav: NavHostController) {
     LaunchedEffect(Unit) {
         coroutineScope {
             launch {
@@ -355,13 +321,3 @@ fun Disconnect(conn: ConnectionActivity?, nav: NavHostController, modifier: Modi
         }
     }
 }
-
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    WificonnTheme {
-
-    }
-}
-
